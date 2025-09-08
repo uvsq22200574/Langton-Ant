@@ -1,0 +1,15 @@
+[package]
+name = "Langton_Ant"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = "z"       # Optimize for size (use "s" for a balance)
+lto = true            # Enable link-time optimizations
+codegen-units = 1     # Reduce parallelism for better optimizations
+panic = "abort"       # Reduce binary size by removing unwinding
+strip = true          # Remove debug symbols (Cargo 1.79+)
+
+[dependencies]
+macroquad = "0.4.13"
+thousands = "0.2.0"
