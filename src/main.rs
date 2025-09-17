@@ -9,7 +9,6 @@ use gamemodes::langton::Gamestate;
 mod input;
 use input::functions::handle_input;
 
-
 #[macroquad::main("Langton's Ant")]
 async fn main() {
     // Fullscreen
@@ -24,7 +23,6 @@ async fn main() {
     let mut render = LangtonRenderer::new();
 
     loop {
-
         handle_input(&mut camera, &mut game_data);
 
         game_data.update(game_data.get_speed());

@@ -4,7 +4,6 @@ use crate::objects::functions::*;
 use macroquad::prelude::*;
 use thousands::Separable;
 
-
 pub struct CCamera {
     x: f32,
     y: f32,
@@ -76,15 +75,11 @@ impl CCamera {
         self.y = world_y_before - cursor_y / self.zoom;
     }
 
-    pub fn screen_to_grid_position(
-        &self,
-        coordinates: (f32, f32),
-        cell_size: usize,
-    ) -> (i32, i32) {
+    pub fn screen_to_grid_position(&self, coordinates: (f32, f32), cell_size: usize) -> (i32, i32) {
         let (x, y) = coordinates;
 
         // Convert screen coordinates to world coordinates
-        let world_x = (x) / self.zoom+ self.x;
+        let world_x = (x) / self.zoom + self.x;
         let world_y = (y) / self.zoom + self.y;
 
         // Convert world coordinates to grid coordinates
@@ -121,8 +116,6 @@ impl CCamera {
     }
 }
 
-
-
 pub struct LangtonRenderer {}
 
 impl LangtonRenderer {
@@ -133,92 +126,94 @@ impl LangtonRenderer {
 
     /// Draws graphical elements
     pub fn render(&mut self, camera: &CCamera, gamestate: &Gamestate) {
-
         let zoom = camera.get_zoom();
         let cell_size = camera.get_cell_size();
         let scaled_cell_size = camera.get_scaled_cell_size();
         let (start_x, start_y, end_x, end_y) = camera.get_visible_range(cell_size as f32);
 
-        draw_cell_grid(&camera, start_x, start_y, end_x, end_y);
-        
+        // Draw the grid
+        draw_cell_grid(camera, start_x, start_y, end_x, end_y);
+
         // Draw cells
-        for (&(x, y), state) in gamestate.get_grid().iter().filter(|(&pos, _)| pos.0 >= start_x && pos.0 <= end_x && pos.1 >= start_y && pos.1 <= end_y) {
+        for ((x, y), state) in gamestate
+            .get_grid()
+            .iter()
+            .filter(|((x, y), _)| *x >= start_x && *x <= end_x && *y >= start_y && *y <= end_y)
+            .map(|((x, y), state)| ((*x, *y), *state))
+        {
             let screen_x = (x as f32 * cell_size as f32 - camera.get_x()) * zoom;
             let screen_y = (y as f32 * cell_size as f32 - camera.get_y()) * zoom;
-        
+
             draw_rectangle(
                 screen_x,
                 screen_y,
                 scaled_cell_size,
                 scaled_cell_size,
-                *gamestate.get_rule().get_rule_color(*state as usize),
+                *gamestate.get_rule().get_rule_color(state as usize),
             );
         }
 
+        // Draw ants in visible region
+        for ant in &gamestate.get_ants_in_region(start_x, end_x, start_y, end_y) {
+            let screen_x = (ant.x as f32 * cell_size as f32 - camera.get_x()) * zoom
+                + cell_size as f32 * zoom / 2.0;
+            let screen_y = (ant.y as f32 * cell_size as f32 - camera.get_y()) * zoom
+                + cell_size as f32 * zoom / 2.0;
 
-    // Iterate through all ants in the visible range of the grid
-    for ant in &gamestate.get_ants_in_region(start_x, end_x, start_y, end_y) {
-        // Get the center of the cell for the ant position
-        let screen_x = (ant.x as f32 * cell_size as f32 - camera.get_x()) * zoom + cell_size as f32 * zoom / 2.0;
-        let screen_y = (ant.y as f32 * cell_size as f32 - camera.get_y()) * zoom + cell_size as f32 * zoom / 2.0;
+            let ant_color = match ant.direction {
+                Direction::Up => RED,
+                Direction::Right => GREEN,
+                Direction::Down => BLUE,
+                Direction::Left => YELLOW,
+            };
 
-        // Define the color of the ant manually based on its direction
-        let ant_color = match ant.direction {
-            Direction::Up => RED,
-            Direction::Right => GREEN,
-            Direction::Down => BLUE,
-            Direction::Left => YELLOW,
-        };
+            let ant_size = camera.get_scaled_cell_size() / 2.0;
 
-        // Define the triangle (ant) in screen coordinates, based on its direction
-        let ant_size = camera.get_scaled_cell_size() / 2.0;
+            let (p1_x, p1_y, p2_x, p2_y, p3_x, p3_y) = match ant.direction {
+                Direction::Up => (
+                    screen_x,
+                    screen_y - ant_size,
+                    screen_x - ant_size,
+                    screen_y + ant_size,
+                    screen_x + ant_size,
+                    screen_y + ant_size,
+                ),
+                Direction::Right => (
+                    screen_x + ant_size,
+                    screen_y,
+                    screen_x - ant_size,
+                    screen_y - ant_size,
+                    screen_x - ant_size,
+                    screen_y + ant_size,
+                ),
+                Direction::Down => (
+                    screen_x,
+                    screen_y + ant_size,
+                    screen_x - ant_size,
+                    screen_y - ant_size,
+                    screen_x + ant_size,
+                    screen_y - ant_size,
+                ),
+                Direction::Left => (
+                    screen_x - ant_size,
+                    screen_y,
+                    screen_x + ant_size,
+                    screen_y - ant_size,
+                    screen_x + ant_size,
+                    screen_y + ant_size,
+                ),
+            };
 
-        let (p1_x, p1_y, p2_x, p2_y, p3_x, p3_y) = match ant.direction {
-            Direction::Up => (
-                screen_x,
-                screen_y - ant_size, // Tip (top)
-                screen_x - ant_size,
-                screen_y + ant_size, // Bottom left
-                screen_x + ant_size,
-                screen_y + ant_size, // Bottom right
-            ),
-            Direction::Right => (
-                screen_x + ant_size,
-                screen_y, // Tip (right)
-                screen_x - ant_size,
-                screen_y - ant_size, // Top left
-                screen_x - ant_size,
-                screen_y + ant_size, // Bottom left
-            ),
-            Direction::Down => (
-                screen_x,
-                screen_y + ant_size, // Tip (bottom)
-                screen_x - ant_size,
-                screen_y - ant_size, // Top left
-                screen_x + ant_size,
-                screen_y - ant_size, // Top right
-            ),
-            Direction::Left => (
-                screen_x - ant_size,
-                screen_y, // Tip (left)
-                screen_x + ant_size,
-                screen_y - ant_size, // Top right
-                screen_x + ant_size,
-                screen_y + ant_size, // Bottom right
-            )
-        };
+            draw_triangle(
+                Vec2::new(p1_x, p1_y),
+                Vec2::new(p2_x, p2_y),
+                Vec2::new(p3_x, p3_y),
+                ant_color,
+            );
+        }
 
-        // Draw the triangle representing the ant
-        draw_triangle(
-            Vec2::new(p1_x, p1_y), // Point 1
-            Vec2::new(p2_x, p2_y), // Point 2
-            Vec2::new(p3_x, p3_y), // Point 3
-            ant_color,
-        );
-    }
-
-    draw_cursor(&camera, gamestate.get_cursor_x(), gamestate.get_cursor_y());
-
+        // Draw cursor
+        draw_cursor(&camera, gamestate.get_cursor_x(), gamestate.get_cursor_y());
     }
 
     pub fn draw_texts(&self, camera: &CCamera, gamestate: &Gamestate) {
@@ -226,20 +221,16 @@ impl LangtonRenderer {
         let camera_text = &format!("Zoom {:.2}x", camera.get_zoom());
         draw_text(
             camera_text,
-            screen_width()
-                - measure_text(
-                    camera_text,
-                    None,
-                    45,
-                    1.0,
-                )
-                .width,
+            screen_width() - measure_text(camera_text, None, 45, 1.0).width,
             42.0,
             45.0,
             DARKPURPLE,
         );
         // Cells
-        let cell_text = &format!("Cells:{}", gamestate.get_grid().len().separate_with_spaces());
+        let cell_text = &format!(
+            "Cells:{}",
+            gamestate.get_grid().len().separate_with_spaces()
+        );
         draw_text(
             cell_text,
             screen_width() - measure_text(cell_text, None, 45, 1.0).width,
@@ -248,7 +239,13 @@ impl LangtonRenderer {
             DARKPURPLE,
         );
         // Ants
-        let ant_text = &format!("Ants:{}/{}", gamestate.get_total_visible_ants(camera.get_visible_range(camera.get_cell_size() as f32)).separate_with_spaces(), gamestate.get_total_ants().separate_with_spaces());
+        let ant_text = &format!(
+            "Ants:{}/{}",
+            gamestate
+                .get_total_visible_ants(camera.get_visible_range(camera.get_cell_size() as f32))
+                .separate_with_spaces(),
+            gamestate.get_total_ants().separate_with_spaces()
+        );
         draw_text(
             ant_text,
             screen_width() - measure_text(ant_text, None, 45, 1.0).width,
@@ -271,8 +268,18 @@ impl LangtonRenderer {
         // FPS
         draw_text(&format!("{}", get_fps()), 10.0, 42.0, 42.0, RED);
         // Iteration
-        let iteration_text = &format!("Iter:{} at {} ({}/s)", gamestate.get_iteration().separate_with_spaces(), gamestate.get_speed().separate_with_spaces(), gamestate.get_update_speed().separate_with_spaces());
-        draw_text(iteration_text, (screen_width() - measure_text(&iteration_text, None, 42, 1.0).width) / 2.0, 42.0, 42.0, RED);
+        let iteration_text = &format!(
+            "Iter:{} at {} ({}/s)",
+            gamestate.get_iteration().separate_with_spaces(),
+            gamestate.get_speed().separate_with_spaces(),
+            gamestate.get_update_speed().separate_with_spaces()
+        );
+        draw_text(
+            iteration_text,
+            (screen_width() - measure_text(&iteration_text, None, 42, 1.0).width) / 2.0,
+            42.0,
+            42.0,
+            RED,
+        );
     }
-
 }

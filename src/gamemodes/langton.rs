@@ -1,6 +1,6 @@
-use std::collections::{HashMap, BTreeMap};
 use macroquad::prelude::{Color, KeyCode};
-use macroquad::prelude::{get_fps,is_key_pressed};
+use macroquad::prelude::{get_fps, is_key_pressed};
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Direction {
@@ -84,11 +84,14 @@ impl Rule {
 
     // Convert a string to a vector of Path
     fn convert_directions(directions: &str) -> Vec<Direction> {
-        directions.chars().map(|c| match c {
-            'R' => Direction::Right,
-            'L' => Direction::Left,
-            _ => panic!("Invalid direction: {}", c),
-        }).collect()
+        directions
+            .chars()
+            .map(|c| match c {
+                'R' => Direction::Right,
+                'L' => Direction::Left,
+                _ => panic!("Invalid direction: {}", c),
+            })
+            .collect()
     }
 
     // Generate gradient function
@@ -101,13 +104,16 @@ impl Rule {
         let end_g = ((end >> 8) & 0xFF) as f32;
         let end_b = (end & 0xFF) as f32;
 
-        (0..steps).map(|i| {
-            let t = i as f32 / (steps as f32 - 1.0);
-            let r = ((1.0 - t) * start_r + t * end_r) as u8;
-            let g = ((1.0 - t) * start_g + t * end_g) as u8;
-            let b = ((1.0 - t) * start_b + t * end_b) as u8;
+        (0..steps)
+            .map(|i| {
+                let t = i as f32 / (steps as f32 - 1.0);
+                let r = ((1.0 - t) * start_r + t * end_r) as u8;
+                let g = ((1.0 - t) * start_g + t * end_g) as u8;
+                let b = ((1.0 - t) * start_b + t * end_b) as u8;
 
-            Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0)}).collect()
+                Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0)
+            })
+            .collect()
     }
 
     pub fn get_rule_direction(&self, position: usize) -> &Direction {
@@ -118,7 +124,6 @@ impl Rule {
         &self.colors[position]
     }
 }
-
 
 pub struct Gamestate {
     grid: HashMap<(i32, i32), u8>,
@@ -140,32 +145,32 @@ impl Gamestate {
             ants: BTreeMap::new(),
             paused: true,
             iteration: 0,
-            speed:1,
+            speed: 1,
             update_speed: 0,
             cursor_size: (1, 1),
             max_cursor_size: 10,
             selected_rule: 0,
             // 0 -> Right, 1 -> Left
             rules: vec![
-                Rule::new("RL", (0x00000, 0xAAAAAA)),  // Classic Rules
-                Rule::new("LRL", (0x005524,0x2bb25a)),  // Lettuce
-                Rule::new("RLLLLLRRL", (0x260511, 0x95097e)),  // Amethyst Cube
-                Rule::new("RRLLLRLLLRRR", (0x000021, 0x06d7b4)),  // Saphyre Triangle
-                Rule::new("RRLL", (0x120021, 0xFF00AA)),  // Brain
-                Rule::new("LLRRRLRLRLLR", (0x333300, 0xFFFF00)),  // Yellow Highway
-                Rule::new("RLLR", (0x00AAAA, 0xFF5500)), // Cubic crystal
-                Rule::new("RRLLRR", (0xDAF7A6, 0x581845)), // Mini Brain
-                Rule::new("LRRLRL", (0xFFC300, 0xFF5733)), // Pollen
-                Rule::new("RRRLLLL", (0x11998E, 0x3B5998)), // Ocean
-                Rule::new("RLLLRRR", (0x00FFFF, 0xFF00FF)), // Cubic Crystal
-                ]
+                Rule::new("RL", (0x00000, 0xAAAAAA)),            // Classic Rules
+                Rule::new("LRL", (0x005524, 0x2bb25a)),          // Lettuce
+                Rule::new("RLLLLLRRL", (0x260511, 0x95097e)),    // Amethyst Cube
+                Rule::new("RRLLLRLLLRRR", (0x000021, 0x06d7b4)), // Saphyre Triangle
+                Rule::new("RRLL", (0x120021, 0xFF00AA)),         // Brain
+                Rule::new("LLRRRLRLRLLR", (0x333300, 0xFFFF00)), // Yellow Highway
+                Rule::new("RLLR", (0x00AAAA, 0xFF5500)),         // Cubic crystal
+                Rule::new("RRLLRR", (0xDAF7A6, 0x581845)),       // Mini Brain
+                Rule::new("LRRLRL", (0xFFC300, 0xFF5733)),       // Pollen
+                Rule::new("RRRLLLL", (0x11998E, 0x3B5998)),      // Ocean
+                Rule::new("RLLLRRR", (0x00FFFF, 0xFF00FF)),      // Cubic Crystal
+            ],
         }
     }
 
     pub fn get_grid(&self) -> &HashMap<(i32, i32), u8> {
         &self.grid
     }
-    
+
     pub fn set_grid_value(&mut self, key: (i32, i32), value: u8) {
         self.grid.insert(key, value);
     }
@@ -181,12 +186,15 @@ impl Gamestate {
     pub fn add_ants(&mut self, position: (i32, i32)) {
         for x in 0..self.cursor_size.0 {
             for y in 0..self.cursor_size.1 {
-                let ant = Ant::place_ant(position.0 + x as i32, position.1 + y as i32, Direction::Up);
-                self.ants.entry((ant.x, ant.y)).or_insert_with(Vec::new).push(ant);
+                let ant =
+                    Ant::place_ant(position.0 + x as i32, position.1 + y as i32, Direction::Up);
+                self.ants
+                    .entry((ant.x, ant.y))
+                    .or_insert_with(Vec::new)
+                    .push(ant);
             }
         }
     }
-
 
     pub fn get_ants_in_region(&self, min_x: i32, max_x: i32, min_y: i32, max_y: i32) -> Vec<&Ant> {
         // Perform a range query on the coordinates in the BTreeMap
@@ -194,17 +202,30 @@ impl Gamestate {
             .range((min_x, min_y)..=(max_x, max_y)) // BTreeMap range query
             .flat_map(|(&(x, y), ants)| {
                 // Filter ants based on both x and y coordinates
-                if x >= min_x && x <= max_x && y >= min_y && y <= max_y { ants.iter() } else { [].iter() }
+                if x >= min_x && x <= max_x && y >= min_y && y <= max_y {
+                    ants.iter()
+                } else {
+                    [].iter()
+                }
             })
             .collect()
     }
 
     pub fn get_total_ants(&self) -> usize {
-        self.ants.values().map(|ants_in_cell| ants_in_cell.len()).sum()
+        self.ants
+            .values()
+            .map(|ants_in_cell| ants_in_cell.len())
+            .sum()
     }
 
     pub fn get_total_visible_ants(&self, visible_range: (i32, i32, i32, i32)) -> usize {
-        self.get_ants_in_region(visible_range.0, visible_range.2, visible_range.1, visible_range.3).len()
+        self.get_ants_in_region(
+            visible_range.0,
+            visible_range.2,
+            visible_range.1,
+            visible_range.3,
+        )
+        .len()
     }
 
     pub fn reset(&mut self) {
@@ -228,7 +249,7 @@ impl Gamestate {
     pub fn get_iteration(&self) -> &u128 {
         &self.iteration
     }
-    
+
     pub fn increment_iteration(&mut self, value: u32) {
         self.iteration += value as u128
     }
@@ -290,8 +311,7 @@ impl Gamestate {
     pub fn select_rule(&mut self, rule_number: usize) {
         if rule_number < self.rules.len() {
             self.selected_rule = rule_number
-        }
-        else {
+        } else {
             println!("Attempted to select a rule out of range !")
         }
     }
@@ -313,18 +333,18 @@ impl Gamestate {
 
             for _ in 0..number_of_iterations {
                 let mut new_ants: BTreeMap<(i32, i32), Vec<Ant>> = BTreeMap::new();
-        
+
                 // Process all ants and determine new positions
                 for (pos, ants) in std::mem::take(&mut self.ants) {
                     let current_state = *self.grid.get(&pos).unwrap_or(&0);
                     let new_state = (current_state + 1) % rule_length;
                     self.set_grid_value(pos, new_state); // Directly update the grid instead of collecting changes
-        
+
                     for mut ant in ants {
                         // Rotate ant direction
                         let current_rule_state = rule.get_rule_direction(current_state as usize);
                         ant.direction = ant.direction.cycle_direction(current_rule_state);
-        
+
                         // Move ant
                         match ant.direction {
                             Direction::Up => ant.y -= 1,
@@ -332,20 +352,20 @@ impl Gamestate {
                             Direction::Down => ant.y += 1,
                             Direction::Left => ant.x -= 1,
                         }
-        
+
                         // Insert the ant into its new position in the BTreemap
-                        new_ants.entry((ant.x, ant.y))
+                        new_ants
+                            .entry((ant.x, ant.y))
                             .or_insert_with(Vec::new)
                             .push(ant);
                     }
                 }
-        
+
                 // Update the ants collection with the new positions
                 self.ants = new_ants;
             }
-            
-            self.increment_iteration(number_of_iterations);
 
+            self.increment_iteration(number_of_iterations);
         }
     }
 }
